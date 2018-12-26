@@ -33,7 +33,7 @@ module Rails5
 
         root_node.each_node(:send) do |node|
           target, verb, action, *args = node.children
-
+          # byebug
           if verb == :with_any_args
             @source_rewriter.replace(node.loc.selector, 'with(any_args)')
           elsif verb == :any_times
@@ -69,7 +69,19 @@ module Rails5
             @source_rewriter.replace(node.loc.selector, 'kind_of')
           elsif verb == :numeric
             @source_rewriter.replace(node.loc.selector, 'kind_of(Numeric)')
+
+          # RR::WildcardMatchers::HashIncluding => hash_including
+          elsif verb == :new && target.const_type? && target.children.last == :HashIncluding
+            range = Parser::Source::Range.new(@source_buffer, target.loc.expression.begin_pos, node.loc.selector.end_pos)
+            @source_rewriter.replace(range, 'hash_including')
+
+          # RR::WildcardMatchers::Satisfy => rr_satsify
+          elsif verb == :new && target.const_type? && target.children.last == :Satisfy
+            # byebug
+            range = Parser::Source::Range.new(@source_buffer, target.loc.expression.begin_pos, node.loc.selector.end_pos)
+            @source_rewriter.replace(range, 'rr_satisfy')
           end
+
           # next unless args.length > 0
 
           # next unless target.nil? && HTTP_VERBS.include?(verb)

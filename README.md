@@ -222,12 +222,12 @@ This is a custom modification of the transpec tool to handle converting from [RR
 
     => boolean
 
-### #duck_type
+### #duck_type DONE
     0 matches
 
     => duck_type
 
-### #hash_including
+### #hash_including DONE
     50 matches across 16 files
 
     => hash_including
@@ -239,11 +239,11 @@ This is a custom modification of the transpec tool to handle converting from [RR
 
 # Module References
 
-### RR::WildcardMatchers::HashIncluding
+### RR::WildcardMatchers::HashIncluding  DONE
 
     => hash_including
 
-### RR::WildcardMatchers::Satisfy
+### RR::WildcardMatchers::Satisfy DONE
 
     => rr_satisfy
 

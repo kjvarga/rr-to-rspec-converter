@@ -18,6 +18,50 @@ describe Rails5::SpecConverter::TextTransformer do
     transform(text, options)
   end
 
+  describe 'RR::WildcardMatchers::Satisfy' do
+    it 'converts to rr_satisfy' do
+      result = transform(<<-RUBY.strip_heredoc)
+        dont_allow(UsersService).update(RR::WildcardMatchers::Satisfy.new(params: 1)).something
+      RUBY
+
+      expect(result).to eq(<<-RUBY.strip_heredoc)
+        dont_allow(UsersService).update(rr_satisfy(params: 1)).something
+      RUBY
+    end
+
+    it 'converts to rr_satisfy' do
+      result = transform(<<-RUBY.strip_heredoc)
+        dont_allow(UsersService).update(RR::WildcardMatchers::Satisfy.new( {params: 1} )).something
+      RUBY
+
+      expect(result).to eq(<<-RUBY.strip_heredoc)
+        dont_allow(UsersService).update(rr_satisfy( {params: 1} )).something
+      RUBY
+    end
+  end
+
+  describe 'RR::WildcardMatchers::HashIncluding' do
+    it 'converts to hash_including' do
+      result = transform(<<-RUBY.strip_heredoc)
+        dont_allow(UsersService).update(RR::WildcardMatchers::HashIncluding.new(params: 1)).something
+      RUBY
+
+      expect(result).to eq(<<-RUBY.strip_heredoc)
+        dont_allow(UsersService).update(hash_including(params: 1)).something
+      RUBY
+    end
+
+    it 'converts to hash_including' do
+      result = transform(<<-RUBY.strip_heredoc)
+        dont_allow(UsersService).update(RR::WildcardMatchers::HashIncluding.new( {params: 1} )).something
+      RUBY
+
+      expect(result).to eq(<<-RUBY.strip_heredoc)
+        dont_allow(UsersService).update(hash_including( {params: 1} )).something
+      RUBY
+    end
+  end
+
   describe 'numeric' do
     it 'converts to kind_of(Numeric)' do
       result = transform(<<-RUBY.strip_heredoc)
