@@ -12,7 +12,7 @@ This is a custom modification of the transpec tool to handle converting from [RR
 
 ## RR API
 
-### #mock
+### #mock DONE
     1142 matches across 222 files
 
     mock(view).render.with_any_args.twice do |*args|
@@ -25,7 +25,7 @@ This is a custom modification of the transpec tool to handle converting from [RR
 
     => expect(object).to receive(:method).with(arguments).and_return(return_val)
 
-### #mock!
+### #mock! DONE
     17 matches across 7 files
     /Users/kvarga/Projects/change/spec/controllers/account_settings_controller_spec.rb:
     /Users/kvarga/Projects/change/spec/controllers/soa/mailers_controller_spec.rb:
@@ -43,12 +43,12 @@ This is a custom modification of the transpec tool to handle converting from [RR
 
       Then assert expectations with `have_received` or `receive`.
 
-### #stub
+### #stub DONE
     1227 matches across 241 files
 
     => allow(object).to receive(:method).with(arguments).and_return(return_val)
 
-### #stub!
+### #stub! DONE
     5 matches across 5 files
     /Users/kvarga/Projects/change/spec/concerns/launch_member_sponsored_upsell_concern_spec.rb:
     /Users/kvarga/Projects/change/spec/controllers/login_controller_spec.rb:
@@ -67,10 +67,10 @@ This is a custom modification of the transpec tool to handle converting from [RR
 
     => expect(object).not_to receive(:method).with(args)
 
-### #dont_allow!
+### #dont_allow! DONE
     0 matches
 
-### #proxy
+### #proxy DONE
     8 matches across 4 files
     /Users/kvarga/Projects/change/spec/lib/i18n/backend/local_from_s3_spec.rb:
     /Users/kvarga/Projects/change/spec/models/current_user_spec.rb:
@@ -90,7 +90,7 @@ This is a custom modification of the transpec tool to handle converting from [RR
 ### #proxy!
     0 matches
 
-### #instance_of
+### #instance_of DONE
     3 matches across 2 files
     /Users/kvarga/Projects/change/spec/concerns/launch_member_sponsored_upsell_concern_spec.rb:
     /Users/kvarga/Projects/change/spec/controllers/petitions/signatures_controller_spec.rb:
@@ -232,10 +232,12 @@ This is a custom modification of the transpec tool to handle converting from [RR
 
     => hash_including
 
-### #rr_satisfy
+### #rr_satisfy DONE
     10 matches across 8 files
 
-    => Use RSpec satisfy method.  Would need to rewrite to use arguments from block, which alters the intent of the test.  I think this will need to be done manually.
+    => satisfy
+
+    Use RSpec satisfy method.  Would need to rewrite to use arguments from block, which alters the intent of the test.  I think this will need to be done manually.
 
 # Module References
 
@@ -247,7 +249,7 @@ This is a custom modification of the transpec tool to handle converting from [RR
 
     => rr_satisfy
 
-### RR.reset
+### RR.reset DONE
     /Users/kvarga/Projects/change/spec/workers/handle_sfmc_inactives_worker_spec.rb
 
     => remove

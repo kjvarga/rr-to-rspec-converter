@@ -18,24 +18,171 @@ describe Rails5::SpecConverter::TextTransformer do
     transform(text, options)
   end
 
-  describe 'RR::WildcardMatchers::Satisfy' do
-    it 'converts to rr_satisfy' do
-      result = transform(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(RR::WildcardMatchers::Satisfy.new(params: 1)).something
+  describe 'dont_allow' do
+    it 'converts to expect().not_to receive' do
+      result = transform(<<-RUBY)
+        dont_allow(GeoNames).timezone_from_lat_lng
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(rr_satisfy(params: 1)).something
+      expect(result).to eq(<<-RUBY)
+        expect(GeoNames).not_to receive(:timezone_from_lat_lng)
       RUBY
     end
 
-    it 'converts to rr_satisfy' do
+    it 'converts to expect().not_to receive' do
+      result = transform(<<-RUBY)
+        dont_allow(Fluent::Logger).post('monorail.signature.resend_email', anything)
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        expect(Fluent::Logger).not_to receive(:post).with('monorail.signature.resend_email', anything)
+      RUBY
+    end
+
+    it 'converts to expect().not_to receive' do
+      result = transform(<<-RUBY)
+        dont_allow(OrganizationMailer).optins_downloaded.with(any_args)
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        expect(OrganizationMailer).not_to receive(:optins_downloaded).with(any_args)
+      RUBY
+    end
+  end
+
+  describe 'stub' do
+    it 'converts to allow' do
+      result = transform(<<-RUBY)
+        stub(Fluent::Logger).post('monorail.petition_starter.petition_comment.created.onsite', anything)
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        allow(Fluent::Logger).to receive(:post).with('monorail.petition_starter.petition_comment.created.onsite', anything)
+      RUBY
+    end
+
+    it 'converts to allow' do
+      result = transform(<<-RUBY)
+        stub(controller).get_or_set_user_tracker_uuid_for_current_user
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        allow(controller).to receive(:get_or_set_user_tracker_uuid_for_current_user)
+      RUBY
+    end
+
+    it 'converts to allow' do
+      result = transform(<<-RUBY)
+        stub(controller).sponsorship_form_shown_recently? { sponsorship_form_shown_recently }.at_least(:once)
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        allow(controller).to receive(:sponsorship_form_shown_recently?) { sponsorship_form_shown_recently }.at_least(:once)
+      RUBY
+    end
+  end
+
+  describe 'mock' do
+    it 'converts to expect' do
+      result = transform(<<-RUBY)
+        mock(Fluent::Logger).post('monorail.petition_starter.petition_comment.created.onsite', anything)
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        expect(Fluent::Logger).to receive(:post).with('monorail.petition_starter.petition_comment.created.onsite', anything)
+      RUBY
+    end
+
+    it 'converts to expect' do
+      result = transform(<<-RUBY)
+        mock(controller).get_or_set_user_tracker_uuid_for_current_user
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        expect(controller).to receive(:get_or_set_user_tracker_uuid_for_current_user)
+      RUBY
+    end
+
+    it 'converts to expect' do
+      result = transform(<<-RUBY)
+        mock(controller).sponsorship_form_shown_recently? { sponsorship_form_shown_recently }.at_least(:once)
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        expect(controller).to receive(:sponsorship_form_shown_recently?) { sponsorship_form_shown_recently }.at_least(:once)
+      RUBY
+    end
+  end
+
+  describe 'any_instance_of' do
+    context 'with hash argument' do
+      it 'converts to block syntax' do
+        result = transform(<<-RUBY)
+          any_instance_of(User, :valid? => false, admin: true)
+        RUBY
+
+        expect(result).to eq(<<-RUBY)
+          any_instance_of(User) do |o|
+            stub(o).valid?.and_return(false)
+            stub(o).admin.and_return(true)
+          end
+        RUBY
+      end
+    end
+  end
+
+  describe 'RR.reset' do
+    it 'removes the line' do
       result = transform(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(RR::WildcardMatchers::Satisfy.new( {params: 1} )).something
+        RR.reset
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(rr_satisfy( {params: 1} )).something
+
+      RUBY
+    end
+
+    it 'removes the statement' do
+      result = transform(<<-RUBY.strip_heredoc)
+        RR.reset; something = :foo;
+      RUBY
+
+      expect(result).to eq(<<-RUBY.strip_heredoc)
+        something = :foo;
+      RUBY
+    end
+  end
+
+  describe 'rr_satisfy' do
+    it 'converts to satisfy' do
+      result = transform(<<-RUBY.strip_heredoc)
+        expect(UsersService).not_to receive(:update).with(rr_satisfy(params: 1)).something
+      RUBY
+
+      expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(UsersService).not_to receive(:update).with(satisfy(params: 1)).something
+      RUBY
+    end
+
+    it 'converts to satisfy' do
+      result = transform(<<-RUBY.strip_heredoc)
+        expect(UsersService).not_to receive(:update).with(rr_satisfy( {params: 1} )).something
+      RUBY
+
+      expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(UsersService).not_to receive(:update).with(satisfy( {params: 1} )).something
+      RUBY
+    end
+  end
+
+  describe 'RR::WildcardMatchers::Satisfy' do
+    it 'converts to satisfy' do
+      result = transform(<<-RUBY.strip_heredoc)
+        expect(UsersService).not_to receive(:update).with(RR::WildcardMatchers::Satisfy.new( {params: 1} )).something
+      RUBY
+
+      expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(UsersService).not_to receive(:update).with(rr_satisfy( {params: 1} )).something
       RUBY
     end
   end
@@ -43,21 +190,21 @@ describe Rails5::SpecConverter::TextTransformer do
   describe 'RR::WildcardMatchers::HashIncluding' do
     it 'converts to hash_including' do
       result = transform(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(RR::WildcardMatchers::HashIncluding.new(params: 1)).something
+        expect(UsersService).not_to receive(:update).with(RR::WildcardMatchers::HashIncluding.new(params: 1)).something
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(hash_including(params: 1)).something
+        expect(UsersService).not_to receive(:update).with(hash_including(params: 1)).something
       RUBY
     end
 
     it 'converts to hash_including' do
       result = transform(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(RR::WildcardMatchers::HashIncluding.new( {params: 1} )).something
+        expect(UsersService).not_to receive(:update).with(RR::WildcardMatchers::HashIncluding.new( {params: 1} )).something
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(hash_including( {params: 1} )).something
+        expect(UsersService).not_to receive(:update).with(hash_including( {params: 1} )).something
       RUBY
     end
   end
@@ -65,11 +212,11 @@ describe Rails5::SpecConverter::TextTransformer do
   describe 'numeric' do
     it 'converts to kind_of(Numeric)' do
       result = transform(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(numeric).something
+        expect(UsersService).not_to receive(:update).with(numeric).something
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(kind_of(Numeric)).something
+        expect(UsersService).not_to receive(:update).with(kind_of(Numeric)).something
       RUBY
     end
   end
@@ -77,11 +224,11 @@ describe Rails5::SpecConverter::TextTransformer do
   describe 'is_a' do
     it 'converts to kind_of' do
       result = transform(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(is_a(User)).something
+        expect(UsersService).not_to receive(:update).with(is_a(User)).something
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update(kind_of(User)).something
+        expect(UsersService).not_to receive(:update).with(kind_of(User)).something
       RUBY
     end
   end
@@ -90,21 +237,21 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when 1' do
       it 'converts to at_most(:once)' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(1)
+          expect(UsersService).not_to receive(:update).with.at_most(1)
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(:once)
+          expect(UsersService).not_to receive(:update).with.at_most(:once)
         RUBY
       end
 
       it 'converts to at_most(:once)' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(1).something
+          expect(UsersService).not_to receive(:update).with.at_most(1).something
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(:once).something
+          expect(UsersService).not_to receive(:update).with.at_most(:once).something
         RUBY
       end
     end
@@ -112,21 +259,21 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when 2' do
       it 'converts to at_most(:twice)' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(2)
+          expect(UsersService).not_to receive(:update).with.at_most(2)
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(:twice)
+          expect(UsersService).not_to receive(:update).with.at_most(:twice)
         RUBY
       end
 
       it 'converts to at_most(:twice)' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(2).something
+          expect(UsersService).not_to receive(:update).with.at_most(2).something
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(:twice).something
+          expect(UsersService).not_to receive(:update).with.at_most(:twice).something
         RUBY
       end
     end
@@ -134,21 +281,21 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when greater than 2' do
       it 'converts to at_most(n).times' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(3)
+          expect(UsersService).not_to receive(:update).with.at_most(3)
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(3).times
+          expect(UsersService).not_to receive(:update).with.at_most(3).times
         RUBY
       end
 
       it 'converts to at_most(n).times' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(3).something
+          expect(UsersService).not_to receive(:update).with.at_most(3).something
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_most(3).times.something
+          expect(UsersService).not_to receive(:update).with.at_most(3).times.something
         RUBY
       end
     end
@@ -158,21 +305,21 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when 1' do
       it 'converts to at_least(:once)' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_least(1)
+          expect(UsersService).not_to receive(:update).with.at_least(1)
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_least(:once)
+          expect(UsersService).not_to receive(:update).with.at_least(:once)
         RUBY
       end
 
       it 'converts to at_least(:once)' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_least(1).something
+          expect(UsersService).not_to receive(:update).with.at_least(1).something
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_least(:once).something
+          expect(UsersService).not_to receive(:update).with.at_least(:once).something
         RUBY
       end
     end
@@ -180,21 +327,21 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when 2' do
       it 'converts to at_least(:twice)' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_least(2)
+          expect(UsersService).not_to receive(:update).with.at_least(2)
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_least(:twice)
+          expect(UsersService).not_to receive(:update).with.at_least(:twice)
         RUBY
       end
 
       it 'converts to at_least(:twice)' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_least(2).something
+          expect(UsersService).not_to receive(:update).with.at_least(2).something
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_least(:twice).something
+          expect(UsersService).not_to receive(:update).with.at_least(:twice).something
         RUBY
       end
     end
@@ -202,11 +349,11 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when greater than 2' do
       it 'converts to at_least(n).times' do
         result = transform(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_least(3)
+          expect(UsersService).not_to receive(:update).with.at_least(3)
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          dont_allow(UsersService).update.at_least(3).times
+          expect(UsersService).not_to receive(:update).with.at_least(3).times
         RUBY
       end
     end
@@ -216,11 +363,11 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when argument is 1' do
       it 'converts to once' do
         result = transform(<<-RUBY.strip_heredoc)
-          stub(controller).ga_first_click_attribution.times(1).something
+          allow(controller).to receive(:ga_first_click_attribution).times(1).something
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          stub(controller).ga_first_click_attribution.once.something
+          allow(controller).to receive(:ga_first_click_attribution).once.something
         RUBY
       end
     end
@@ -228,11 +375,11 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when argument is 1 with spaces' do
       it 'converts to once' do
         result = transform(<<-RUBY.strip_heredoc)
-          stub(controller).ga_first_click_attribution.times  1
+          allow(controller).to receive(:ga_first_click_attribution).times  1
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          stub(controller).ga_first_click_attribution.once
+          allow(controller).to receive(:ga_first_click_attribution).once
         RUBY
       end
     end
@@ -240,11 +387,11 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when argument is 2' do
       it 'converts to twice' do
         result = transform(<<-RUBY.strip_heredoc)
-          stub(controller).ga_first_click_attribution.times(2)
+          allow(controller).to receive(:ga_first_click_attribution).times(2)
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          stub(controller).ga_first_click_attribution.twice
+          allow(controller).to receive(:ga_first_click_attribution).twice
         RUBY
       end
     end
@@ -252,11 +399,11 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when argument is greater than 2' do
       it 'does not modify it' do
         result = transform(<<-RUBY.strip_heredoc)
-          stub(controller).ga_first_click_attribution.times(3)
+          allow(controller).to receive(:ga_first_click_attribution).times(3)
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          stub(controller).ga_first_click_attribution.times(3)
+          allow(controller).to receive(:ga_first_click_attribution).times(3)
         RUBY
       end
     end
@@ -266,22 +413,22 @@ describe Rails5::SpecConverter::TextTransformer do
     context 'when no parentheses' do
       it 'converts to and_return and doesn\'t modify parentheses' do
         result = transform(<<-RUBY.strip_heredoc)
-          stub(controller).ga_first_click_attribution.returns argument
+          allow(controller).to receive(:ga_first_click_attribution).returns argument
         RUBY
 
         expect(result).to eq(<<-RUBY.strip_heredoc)
-          stub(controller).ga_first_click_attribution.and_return argument
+          allow(controller).to receive(:ga_first_click_attribution).and_return argument
         RUBY
       end
     end
 
     it 'converts to and_return' do
       result = transform(<<-RUBY.strip_heredoc)
-        stub(User).find_by_param(user.id.to_s).returns(nil)
+        allow(User).to receive(:find_by_param).with(user.id.to_s).returns(nil)
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        stub(User).find_by_param(user.id.to_s).and_return(nil)
+        allow(User).to receive(:find_by_param).with(user.id.to_s).and_return(nil)
       RUBY
     end
 
@@ -301,42 +448,42 @@ describe Rails5::SpecConverter::TextTransformer do
   describe 'any_times' do
     it 'converts to at_least(:once) when trailing method' do
       result = transform(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update.any_times
+        expect(UsersService).not_to receive(:update).with.any_times
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update.at_least(:once)
+        expect(UsersService).not_to receive(:update).with.at_least(:once)
       RUBY
     end
 
     it 'converts to at_least(:once) with block' do
       result = transform(<<-RUBY.strip_heredoc)
-        mock(controller).create_new_user.any_times { user }
+        expect(controller).to receive(:create_new_user).any_times { user }
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        mock(controller).create_new_user.at_least(:once) { user }
+        expect(controller).to receive(:create_new_user).at_least(:once) { user }
       RUBY
     end
 
     it 'converts to at_least(:once) when an intermediate method' do
       result = transform(<<-RUBY.strip_heredoc)
-        mock(PetitionGroup).find.any_times.something(petition_group)
+        expect(PetitionGroup).to receive(:find).any_times.something(petition_group)
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        mock(PetitionGroup).find.at_least(:once).something(petition_group)
+        expect(PetitionGroup).to receive(:find).at_least(:once).something(petition_group)
       RUBY
     end
 
     it 'converts to at_least(:once) when there is extra whitespace' do
       result = transform(<<-RUBY.strip_heredoc)
-        mock(PetitionGroup).find.any_times.
+        expect(PetitionGroup).to receive(:find).any_times.
             something(petition_group)
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        mock(PetitionGroup).find.at_least(:once).
+        expect(PetitionGroup).to receive(:find).at_least(:once).
             something(petition_group)
       RUBY
     end
@@ -345,42 +492,42 @@ describe Rails5::SpecConverter::TextTransformer do
   describe 'with_any_args' do
     it 'converts to with(any_args) when trailing method' do
       result = transform(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update.with_any_args
+        expect(UsersService).not_to receive(:update).with.with_any_args
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        dont_allow(UsersService).update.with(any_args)
+        expect(UsersService).not_to receive(:update).with.with(any_args)
       RUBY
     end
 
     it 'converts to with(any_args) with block' do
       result = transform(<<-RUBY.strip_heredoc)
-        mock(controller).create_new_user.with_any_args { user }
+        expect(controller).to receive(:create_new_user).with_any_args { user }
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        mock(controller).create_new_user.with(any_args) { user }
+        expect(controller).to receive(:create_new_user).with(any_args) { user }
       RUBY
     end
 
     it 'converts to with(any_args) when an intermediate method' do
       result = transform(<<-RUBY.strip_heredoc)
-        mock(PetitionGroup).find.with_any_args.something(petition_group)
+        expect(PetitionGroup).to receive(:find).with_any_args.something(petition_group)
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        mock(PetitionGroup).find.with(any_args).something(petition_group)
+        expect(PetitionGroup).to receive(:find).with(any_args).something(petition_group)
       RUBY
     end
 
     it 'converts to with(any_args) when there is extra whitespace' do
       result = transform(<<-RUBY.strip_heredoc)
-        mock(PetitionGroup).find.with_any_args.
+        expect(PetitionGroup).to receive(:find).with_any_args.
             something(petition_group)
       RUBY
 
       expect(result).to eq(<<-RUBY.strip_heredoc)
-        mock(PetitionGroup).find.with(any_args).
+        expect(PetitionGroup).to receive(:find).with(any_args).
             something(petition_group)
       RUBY
     end

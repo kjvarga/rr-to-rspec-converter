@@ -20,11 +20,10 @@ module Rails5
         ast_builder = Astrolabe::Builder.new
         @parser = Parser::CurrentRuby.new(ast_builder)
 
-        @source_rewriter = Parser::Source::Rewriter.new(@source_buffer)
+        @source_rewriter = Parser::Source::TreeRewriter.new(@source_buffer)
       end
 
       def transform
-        # byebug
         root_node = @parser.parse(@source_buffer)
         unless root_node
           log "Parser saw some unparsable content, skipping...\n\n"
@@ -33,7 +32,7 @@ module Rails5
 
         root_node.each_node(:send) do |node|
           target, verb, action, *args = node.children
-          # byebug
+
           if verb == :with_any_args
             @source_rewriter.replace(node.loc.selector, 'with(any_args)')
           elsif verb == :any_times
@@ -77,9 +76,51 @@ module Rails5
 
           # RR::WildcardMatchers::Satisfy => rr_satsify
           elsif verb == :new && target.const_type? && target.children.last == :Satisfy
-            # byebug
             range = Parser::Source::Range.new(@source_buffer, target.loc.expression.begin_pos, node.loc.selector.end_pos)
             @source_rewriter.replace(range, 'rr_satisfy')
+
+          # rr_satisfy => satisfy
+          elsif verb == :rr_satisfy
+            @source_rewriter.replace(node.loc.selector, 'satisfy')
+
+          # RR.reset => removed
+          elsif verb == :reset && target.const_type? && target.children.last == :RR
+            sibling = node.root? ? nil : node.parent.children[node.sibling_index + 1]
+            end_pos = sibling ? sibling.loc.column : node.loc.last_column
+            @source_rewriter.remove(range(node.loc.column, end_pos))
+
+          # any_instance_of(klass, method: return) => block with stub
+          elsif verb == :any_instance_of && !args.empty?
+            stubs = []
+            indent = line_indent(node)
+            node.each_node(:pair) do |pair|
+              method_name = pair.children.first.loc.expression.source.sub(/^:/,'')
+              method_result = pair.children.last.loc.expression.source
+              stubs << "#{indent}  stub(o).#{method_name}.and_return(#{method_result})"
+            end
+
+            @source_rewriter.replace(node.loc.expression, "#{verb}(#{action.loc.expression.source}) do |o|\n#{stubs.join("\n")}\n#{indent}end")
+
+          # mock => expect().to receive
+          elsif verb == :mock
+            @source_rewriter.replace(node.loc.selector, 'expect')
+            method_name = node.parent.loc.selector.source
+            has_args = !node.parent.children[2].nil?
+            @source_rewriter.replace(node.parent.loc.selector, "to receive(:#{method_name})#{has_args ? '.with' : ''}")
+
+          # stub => allow().to receive
+          elsif verb == :stub
+            @source_rewriter.replace(node.loc.selector, 'allow')
+            method_name = node.parent.loc.selector.source
+            has_args = !node.parent.children[2].nil?
+            @source_rewriter.replace(node.parent.loc.selector, "to receive(:#{method_name})#{has_args ? '.with' : ''}")
+
+          # dont_allow => expect().not_to receive
+          elsif verb == :dont_allow
+            @source_rewriter.replace(node.loc.selector, 'expect')
+            method_name = node.parent.loc.selector.source
+            has_args = !node.parent.children[2].nil?
+            @source_rewriter.replace(node.parent.loc.selector, "not_to receive(:#{method_name})#{has_args ? '.with' : ''}")
           end
 
           # next unless args.length > 0
@@ -122,6 +163,10 @@ module Rails5
       end
 
       private
+
+      def range(start_pos, end_pos)
+        Parser::Source::Range.new(@source_buffer, start_pos, end_pos)
+      end
 
       def looks_like_route_definition?(hash_node)
         keys = hash_node.children.map { |pair| pair.children[0].children[0] }
