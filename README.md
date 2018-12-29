@@ -62,7 +62,7 @@ This is a custom modification of the transpec tool to handle converting from [RR
       object_double(User.new, :save => true)
       object_double("MyApp::LOGGER", :info => nil).as_stubbed_const
 
-### #dont_allow
+### #dont_allow DONE
     162 matches across 62 files
 
     => expect(object).not_to receive(:method).with(args)
@@ -100,7 +100,7 @@ This is a custom modification of the transpec tool to handle converting from [RR
 ### #instance_of!
     0 matches
 
-### #any_instance_of
+### #any_instance_of DONE
     194 matches across 80 files
 
     any_instance_of(User) do |u|
@@ -171,7 +171,7 @@ This is a custom modification of the transpec tool to handle converting from [RR
 
     => with
 
-### #never
+### #never DONE
     23 matches across 13 files
 
     => expect(object).not_to receive(:method)

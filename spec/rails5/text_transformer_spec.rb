@@ -18,6 +18,38 @@ describe Rails5::SpecConverter::TextTransformer do
     transform(text, options)
   end
 
+  describe 'never' do
+    it 'converts to expect().not_to receive' do
+      result = transform(<<-RUBY)
+        mock(GeoNames).timezone_from_lat_lng.never
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        expect(GeoNames).not_to receive(:timezone_from_lat_lng)
+      RUBY
+    end
+
+    it 'converts to expect().not_to receive' do
+      result = transform(<<-RUBY)
+        mock(Tag).update_all({ discoverable: true }, anything).never
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        expect(Tag).not_to receive(:update_all).with({ discoverable: true }, anything)
+      RUBY
+    end
+
+    it 'converts to expect().not_to receive' do
+      result = transform(<<-RUBY)
+        mock(LoggedEvent).fire_fluentd(anything, anything).never
+      RUBY
+
+      expect(result).to eq(<<-RUBY)
+        expect(LoggedEvent).not_to receive(:fire_fluentd).with(anything, anything)
+      RUBY
+    end
+  end
+
   describe 'dont_allow' do
     it 'converts to expect().not_to receive' do
       result = transform(<<-RUBY)
@@ -115,6 +147,32 @@ describe Rails5::SpecConverter::TextTransformer do
   end
 
   describe 'any_instance_of' do
+    context 'with block argument' do
+      it 'rewrites each inner expect and allow' do
+        result = transform(<<-RUBY)
+          any_instance_of(User) do |o|
+            expect(o).to receive(:valid?).and_return(false)
+            allow(o).to receive(:admin).and_return(true)
+          end
+        RUBY
+
+        expect(result).to eq(<<-RUBY)
+          expect_any_instance_of(User).to receive(:valid?).and_return(false)
+            allow_any_instance_of(User).to receive(:admin).and_return(true)
+        RUBY
+      end
+
+      it 'rewrites each inner expect and allow' do
+        result = transform(<<-RUBY)
+          any_instance_of(User) { |o| expect(o).to receive(:valid?).and_return(false); allow(o).to receive(:admin).and_return(true) }
+        RUBY
+
+        expect(result).to eq(<<-RUBY)
+          expect_any_instance_of(User).to receive(:valid?).and_return(false); allow_any_instance_of(User).to receive(:admin).and_return(true)
+        RUBY
+      end
+    end
+
     context 'with hash argument' do
       it 'converts to block syntax' do
         result = transform(<<-RUBY)

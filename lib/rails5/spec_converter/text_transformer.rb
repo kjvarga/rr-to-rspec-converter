@@ -103,10 +103,19 @@ module Rails5
 
           # mock => expect().to receive
           elsif verb == :mock
+            expectation = 'to'
+
+            # If there is a call to 'never' then use expect().not_to receive
+            never_node = root_node.each_node(:send).find { |n| n.children[1] == :never }
+            if never_node
+              expectation = 'not_to'
+              @source_rewriter.remove(range(never_node.children.first.loc.last_column, never_node.loc.selector.last_column))
+            end
+
             @source_rewriter.replace(node.loc.selector, 'expect')
             method_name = node.parent.loc.selector.source
             has_args = !node.parent.children[2].nil?
-            @source_rewriter.replace(node.parent.loc.selector, "to receive(:#{method_name})#{has_args ? '.with' : ''}")
+            @source_rewriter.replace(node.parent.loc.selector, "#{expectation} receive(:#{method_name})#{has_args ? '.with' : ''}")
 
           # stub => allow().to receive
           elsif verb == :stub
@@ -122,41 +131,29 @@ module Rails5
             has_args = !node.parent.children[2].nil?
             @source_rewriter.replace(node.parent.loc.selector, "not_to receive(:#{method_name})#{has_args ? '.with' : ''}")
           end
+        end
 
-          # next unless args.length > 0
+        # Process any_instance_of last
+        root_node.each_node(:block) do |node|
+          method_name = node.children[0].children[1]
+          next unless method_name == :any_instance_of
 
-          # next unless target.nil? && HTTP_VERBS.include?(verb)
-          # if args[0].hash_type?
-          #   if args[0].children.length == 0
-          #     wrap_arg(args[0], 'params')
-          #   else
-          #     next if looks_like_route_definition?(args[0])
-          #     next if has_key?(args[0], :params)
+          class_name = node.children.first.children[2].children[1].to_s
 
-          #     hash_rewriter = HashRewriter.new(
-          #       content: @content,
-          #       options: @options,
-          #       hash_node: args[0],
-          #       original_indent: line_indent(node)
-          #     )
+          # Process each expect or allow within the block
+          node.each_node(:send) do |send_node|
+            method_name = send_node.children[1]
+            next unless [:expect, :allow].include?(method_name)
 
-          #     @source_rewriter.replace(
-          #       args[0].loc.expression,
-          #       hash_rewriter.rewritten_params_hash
-          #     ) if hash_rewriter.should_rewrite_hash?
-          #   end
-          # elsif args[0].nil_type? && args.length > 1
-          #   nil_arg_range = Parser::Source::Range.new(
-          #     @source_buffer,
-          #     args[0].loc.expression.begin_pos,
-          #     args[1].loc.expression.begin_pos
-          #   )
-          #   @source_rewriter.remove(nil_arg_range)
-          # else
-          #   wrap_arg(args[0], 'params')
-          # end
+            @source_rewriter.replace(send_node.loc.selector, "#{method_name}_any_instance_of")
+            @source_rewriter.replace(send_node.children[2].loc.expression, class_name)
+          end
 
-          # wrap_extra_positional_args!(args) if args.length > 1
+          # If it's a begin block, we have to go a level deeper
+          first_statement = node.children[2].begin_type? ? node.children[2].children.first : node.children[2]
+          last_statement = node.children[2].begin_type? ? node.children[2].children.last : node.children[2]
+          @source_rewriter.remove(range(node.loc.expression.begin_pos, first_statement.loc.expression.begin_pos)) # start of block
+          @source_rewriter.remove(range(last_statement.loc.expression.end_pos, node.loc.expression.end_pos)) # end of block
         end
 
         @source_rewriter.process
