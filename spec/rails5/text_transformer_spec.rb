@@ -92,6 +92,18 @@ describe Rails5::SpecConverter::TextTransformer do
   end
 
   describe 'stub' do
+    context 'with no method call' do
+      it 'assumes Kernel' do
+        result = transform(<<-RUBY)
+          stub(rand) { 1 }
+        RUBY
+
+        expect(result).to eq(<<-RUBY)
+          allow(Kernel).to receive(:rand) { 1 }
+        RUBY
+      end
+    end
+
     context 'by itself' do
       it 'converts to double' do
         result = transform(<<-RUBY)
@@ -437,6 +449,18 @@ describe Rails5::SpecConverter::TextTransformer do
   end
 
   describe 'times' do
+    context 'when no argument' do
+      it 'leaves it unmodified' do
+        result = transform(<<-RUBY.strip_heredoc)
+          2.times
+        RUBY
+
+        expect(result).to eq(<<-RUBY.strip_heredoc)
+          2.times
+        RUBY
+      end
+    end
+
     context 'when argument is 1' do
       it 'converts to once' do
         result = transform(<<-RUBY.strip_heredoc)

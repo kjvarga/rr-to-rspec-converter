@@ -39,7 +39,7 @@ module Rails5
             @source_rewriter.replace(node.loc.selector, 'at_least(:once)')
           elsif verb == :returns
             @source_rewriter.replace(node.loc.selector, 'and_return')
-          elsif verb == :times && action.int_type?
+          elsif verb == :times && action&.int_type?
             times = action.children[0]
             if times == 1
               @source_rewriter.replace(Parser::Source::Range.new(@source_buffer, target.loc.expression.end_pos, node.loc.expression.end_pos), '.once')
@@ -124,9 +124,15 @@ module Rails5
               @source_rewriter.replace(node.loc.selector, 'double')
             else
               @source_rewriter.replace(node.loc.selector, 'allow')
-              method_name = node.parent.loc.selector.source
-              has_args = !node.parent.children[2].nil?
-              @source_rewriter.replace(node.parent.loc.selector, "to receive(:#{method_name})#{has_args ? '.with' : ''}")
+              if node.parent.send_type?
+                method_name = node.parent.loc.selector.source
+                has_args = !node.parent.children[2].nil?
+                @source_rewriter.replace(node.parent.loc.selector, "to receive(:#{method_name})#{has_args ? '.with' : ''}")
+              else
+                # Stubbing a method on Kernel
+                method_name = node.children[2].children[1]
+                @source_rewriter.replace(node.loc.expression, "allow(Kernel).to receive(:#{method_name})")
+              end
             end
 
           # dont_allow => expect().not_to receive

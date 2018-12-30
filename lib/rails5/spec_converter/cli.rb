@@ -43,6 +43,7 @@ module Rails5
             @options.file_path = file_path
             transformed_content = Rails5::SpecConverter::TextTransformer.new(original_content, @options).transform
             File.write(file_path, transformed_content)
+          rescue Errno::EISDIR
           end
         end
       end
