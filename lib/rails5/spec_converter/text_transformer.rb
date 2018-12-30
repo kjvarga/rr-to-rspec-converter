@@ -104,19 +104,23 @@ module Rails5
 
           # mock => expect().to receive
           elsif verb == :mock
-            expectation = 'to'
+            if action.nil?
+              @source_rewriter.replace(node.loc.selector, 'double')
+            else
+              expectation = 'to'
 
-            # If there is a call to 'never' then use expect().not_to receive
-            never_node = node.each_ancestor(:send).find { |n| n.children[1] == :never }
-            if never_node
-              expectation = 'not_to'
-              @source_rewriter.remove(range(never_node.children.first.loc.expression.end_pos, never_node.loc.selector.end_pos))
+              # If there is a call to 'never' then use expect().not_to receive
+              never_node = node.each_ancestor(:send).find { |n| n.children[1] == :never }
+              if never_node
+                expectation = 'not_to'
+                @source_rewriter.remove(range(never_node.children.first.loc.expression.end_pos, never_node.loc.selector.end_pos))
+              end
+
+              @source_rewriter.replace(node.loc.selector, 'expect')
+              method_name = node.parent.loc.selector.source
+              has_args = !node.parent.children[2].nil?
+              @source_rewriter.replace(node.parent.loc.selector, "#{expectation} receive(:#{method_name})#{has_args ? '.with' : ''}")
             end
-
-            @source_rewriter.replace(node.loc.selector, 'expect')
-            method_name = node.parent.loc.selector.source
-            has_args = !node.parent.children[2].nil?
-            @source_rewriter.replace(node.parent.loc.selector, "#{expectation} receive(:#{method_name})#{has_args ? '.with' : ''}")
 
           # stub => allow().to receive and double
           elsif verb == :stub
@@ -138,9 +142,15 @@ module Rails5
           # dont_allow => expect().not_to receive
           elsif verb == :dont_allow
             @source_rewriter.replace(node.loc.selector, 'expect')
-            method_name = node.parent.loc.selector.source
-            has_args = !node.parent.children[2].nil?
-            @source_rewriter.replace(node.parent.loc.selector, "not_to receive(:#{method_name})#{has_args ? '.with' : ''}")
+            if args.empty?
+              method_name = node.parent.loc.selector.source
+              has_args = !node.parent.children[2].nil?
+              @source_rewriter.replace(node.parent.loc.selector, "not_to receive(:#{method_name})#{has_args ? '.with' : ''}")
+            else
+              # dont_allow(object, :method) syntax
+              method_name = args.first.children[0]
+              @source_rewriter.replace(range(action.loc.expression.end_pos, node.loc.expression.end_pos), ").not_to receive(:#{method_name})")
+            end
           end
         end
 

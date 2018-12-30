@@ -60,6 +60,18 @@ describe Rails5::SpecConverter::TextTransformer do
   end
 
   describe 'dont_allow' do
+    context 'with argument' do
+      it 'converts to expect().not_to receive' do
+        result = transform(<<-RUBY)
+          dont_allow(GeoNames, :timezone_from_lat_lng)
+        RUBY
+
+        expect(result).to eq(<<-RUBY)
+          expect(GeoNames).not_to receive(:timezone_from_lat_lng)
+        RUBY
+      end
+    end
+
     it 'converts to expect().not_to receive' do
       result = transform(<<-RUBY)
         dont_allow(GeoNames).timezone_from_lat_lng
@@ -148,6 +160,18 @@ describe Rails5::SpecConverter::TextTransformer do
   end
 
   describe 'mock' do
+    context 'by itself' do
+      it 'converts to double' do
+        result = transform(<<-RUBY)
+          request = mock
+        RUBY
+
+        expect(result).to eq(<<-RUBY)
+          request = double
+        RUBY
+      end
+    end
+
     it 'converts to expect' do
       result = transform(<<-RUBY)
         mock(Fluent::Logger).post('monorail.petition_starter.petition_comment.created.onsite', anything)
