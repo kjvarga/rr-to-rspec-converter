@@ -86,30 +86,31 @@ module Rails5
           # RR.reset => removed
           elsif verb == :reset && target.const_type? && target.children.last == :RR
             sibling = node.root? ? nil : node.parent.children[node.sibling_index + 1]
-            end_pos = sibling ? sibling.loc.column : node.loc.last_column
-            @source_rewriter.remove(range(node.loc.column, end_pos))
+            end_pos = sibling ? sibling.loc.expression.begin_pos : node.loc.expression.end_pos
+            @source_rewriter.remove(range(node.loc.expression.begin_pos, end_pos))
 
-          # any_instance_of(klass, method: return) => block with stub
+          # any_instance_of(klass, method: return) => allow_any_instance_of
           elsif verb == :any_instance_of && !args.empty?
             stubs = []
             indent = line_indent(node)
+            class_name = action.children[1].to_s
             node.each_node(:pair) do |pair|
               method_name = pair.children.first.loc.expression.source.sub(/^:/,'')
               method_result = pair.children.last.loc.expression.source
-              stubs << "#{indent}  stub(o).#{method_name}.and_return(#{method_result})"
+              stubs << "allow_any_instance_of(#{class_name}).to receive(:#{method_name}).and_return(#{method_result})"
             end
 
-            @source_rewriter.replace(node.loc.expression, "#{verb}(#{action.loc.expression.source}) do |o|\n#{stubs.join("\n")}\n#{indent}end")
+            @source_rewriter.replace(node.loc.expression, stubs.join("\n#{indent}"))
 
           # mock => expect().to receive
           elsif verb == :mock
             expectation = 'to'
 
             # If there is a call to 'never' then use expect().not_to receive
-            never_node = root_node.each_node(:send).find { |n| n.children[1] == :never }
+            never_node = node.each_ancestor(:send).find { |n| n.children[1] == :never }
             if never_node
               expectation = 'not_to'
-              @source_rewriter.remove(range(never_node.children.first.loc.last_column, never_node.loc.selector.last_column))
+              @source_rewriter.remove(range(never_node.children.first.loc.expression.end_pos, never_node.loc.selector.end_pos))
             end
 
             @source_rewriter.replace(node.loc.selector, 'expect')
@@ -133,10 +134,9 @@ module Rails5
           end
         end
 
-        # Process any_instance_of last
+        # any_instance_of with block
         root_node.each_node(:block) do |node|
-          method_name = node.children[0].children[1]
-          next unless method_name == :any_instance_of
+          next unless node.children[0].children[1] == :any_instance_of
 
           class_name = node.children.first.children[2].children[1].to_s
 

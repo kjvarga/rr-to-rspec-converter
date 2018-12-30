@@ -18,6 +18,15 @@ describe Rails5::SpecConverter::TextTransformer do
     transform(text, options)
   end
 
+  describe 'a complex file' do
+    it 'converts correctly' do
+      contents = File.read(File.expand_path('../../support/complex_file_test.rb', __FILE__))
+      expected = File.read(File.expand_path('../../support/complex_file_test_result.rb', __FILE__))
+      result = transform(contents)
+      expect(result).to eq(expected)
+    end
+  end
+
   describe 'never' do
     it 'converts to expect().not_to receive' do
       result = transform(<<-RUBY)
@@ -180,10 +189,8 @@ describe Rails5::SpecConverter::TextTransformer do
         RUBY
 
         expect(result).to eq(<<-RUBY)
-          any_instance_of(User) do |o|
-            stub(o).valid?.and_return(false)
-            stub(o).admin.and_return(true)
-          end
+          allow_any_instance_of(User).to receive(:valid?).and_return(false)
+          allow_any_instance_of(User).to receive(:admin).and_return(true)
         RUBY
       end
     end
