@@ -118,12 +118,16 @@ module Rails5
             has_args = !node.parent.children[2].nil?
             @source_rewriter.replace(node.parent.loc.selector, "#{expectation} receive(:#{method_name})#{has_args ? '.with' : ''}")
 
-          # stub => allow().to receive
+          # stub => allow().to receive and double
           elsif verb == :stub
-            @source_rewriter.replace(node.loc.selector, 'allow')
-            method_name = node.parent.loc.selector.source
-            has_args = !node.parent.children[2].nil?
-            @source_rewriter.replace(node.parent.loc.selector, "to receive(:#{method_name})#{has_args ? '.with' : ''}")
+            if action.nil?
+              @source_rewriter.replace(node.loc.selector, 'double')
+            else
+              @source_rewriter.replace(node.loc.selector, 'allow')
+              method_name = node.parent.loc.selector.source
+              has_args = !node.parent.children[2].nil?
+              @source_rewriter.replace(node.parent.loc.selector, "to receive(:#{method_name})#{has_args ? '.with' : ''}")
+            end
 
           # dont_allow => expect().not_to receive
           elsif verb == :dont_allow

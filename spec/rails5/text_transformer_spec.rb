@@ -92,6 +92,18 @@ describe Rails5::SpecConverter::TextTransformer do
   end
 
   describe 'stub' do
+    context 'by itself' do
+      it 'converts to double' do
+        result = transform(<<-RUBY)
+          request = stub
+        RUBY
+
+        expect(result).to eq(<<-RUBY)
+          request = double
+        RUBY
+      end
+    end
+
     it 'converts to allow' do
       result = transform(<<-RUBY)
         stub(Fluent::Logger).post('monorail.petition_starter.petition_comment.created.onsite', anything)

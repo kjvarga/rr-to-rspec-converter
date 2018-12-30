@@ -38,7 +38,7 @@ This is a custom modification of the transpec tool to handle converting from [RR
     =>
       instance_double("ConsoleNotifier")
       class_double("ConsoleNotifier")
-      object_double(User.new, :save => true)
+      [object_double(User.new, :save => true)](https://relishapp.com/rspec/rspec-mocks/docs/verifying-doubles/using-an-object-double)
       object_double("MyApp::LOGGER", :info => nil).as_stubbed_const
 
       Then assert expectations with `have_received` or `receive`.
@@ -46,6 +46,10 @@ This is a custom modification of the transpec tool to handle converting from [RR
 ### #stub DONE
     1227 matches across 241 files
 
+    By itself:
+    => [double](https://relishapp.com/rspec/rspec-mocks/v/3-8/docs/basics/partial-test-doubles)
+
+    With method:
     => allow(object).to receive(:method).with(arguments).and_return(return_val)
 
 ### #stub! DONE
