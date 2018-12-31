@@ -90,20 +90,48 @@ module Rails5
             @source_rewriter.remove(range(node.loc.expression.begin_pos, end_pos))
 
           # any_instance_of(klass, method: return) => allow_any_instance_of
-          elsif verb == :any_instance_of && !args.empty?
-            stubs = []
-            indent = line_indent(node)
-            class_name = action.children[1].to_s
-            node.each_node(:pair) do |pair|
-              method_name = pair.children.first.loc.expression.source.sub(/^:/,'')
-              method_result = pair.children.last.loc.expression.source
-              stubs << "allow_any_instance_of(#{class_name}).to receive(:#{method_name}).and_return(#{method_result})"
-            end
+          # any_instance_of(klass) { block } => allow_any_instance_of / expect_any_instance_of
+          elsif verb == :any_instance_of
+            class_name = action.loc.expression.source
+            if !args.empty?
+              stubs = []
+              indent = line_indent(node)
+              node.each_node(:pair) do |pair|
+                method_name = pair.children.first.loc.expression.source.sub(/^:/,'')
+                method_result = pair.children.last.loc.expression.source
+                stubs << "allow_any_instance_of(#{class_name}).to receive(:#{method_name}).and_return(#{method_result})"
+              end
 
-            @source_rewriter.replace(node.loc.expression, stubs.join("\n#{indent}"))
+              @source_rewriter.replace(node.loc.expression, stubs.join("\n#{indent}"))
+            else # parent is a block type
+              begin_node = node.parent.children.last
+              begin_node.each_node(:send) do |send_node|
+                expectation = 'to'
+                stub_method = send_node.children[1]
+                receive_method = send_node.parent.children[1]
+                has_args = !send_node.parent.children[2].nil?
+                next unless [:stub, :mock].include?(stub_method)
+
+                never_node = send_node.each_ancestor(:send).find { |n| n.children[1] == :never }
+                if never_node
+                  expectation = 'not_to'
+                  @source_rewriter.remove(range(never_node.children.first.loc.expression.end_pos, never_node.loc.selector.end_pos))
+                end
+
+                expect_method = stub_method == :stub ? 'allow' : 'expect'
+                @source_rewriter.replace(range(send_node.parent.loc.expression.begin_pos, send_node.parent.loc.selector.end_pos), "#{expect_method}_any_instance_of(#{class_name}).#{expectation} receive(:#{receive_method})#{has_args ? '.with' : ''}")
+              end
+              # Remove the any_instance_of
+              # If it's a begin block, we have to go a level deeper
+              first_statement = begin_node.begin_type? ? begin_node.children.first : begin_node
+              last_statement = begin_node.begin_type? ? begin_node.children.last : begin_node
+              @source_rewriter.remove(range(node.loc.expression.begin_pos, first_statement.loc.expression.begin_pos)) # start of block
+              @source_rewriter.remove(range(last_statement.loc.expression.end_pos, node.parent.loc.expression.end_pos)) # end of block
+            end
 
           # mock => expect().to receive
           elsif verb == :mock
+            next if node.each_ancestor(:block).find { |n| n.children[0].children[1] == :any_instance_of }
             if action.nil?
               @source_rewriter.replace(node.loc.selector, 'double')
             else
@@ -124,6 +152,7 @@ module Rails5
 
           # stub => allow().to receive and double
           elsif verb == :stub
+            next if node.each_ancestor(:block).find { |n| n.children[0].children[1] == :any_instance_of }
             if action.nil?
               @source_rewriter.replace(node.loc.selector, 'double')
             else
@@ -152,28 +181,6 @@ module Rails5
               @source_rewriter.replace(range(action.loc.expression.end_pos, node.loc.expression.end_pos), ").not_to receive(:#{method_name})")
             end
           end
-        end
-
-        # any_instance_of with block
-        root_node.each_node(:block) do |node|
-          next unless node.children[0].children[1] == :any_instance_of
-
-          class_name = node.children.first.children[2].children[1].to_s
-
-          # Process each expect or allow within the block
-          node.each_node(:send) do |send_node|
-            method_name = send_node.children[1]
-            next unless [:expect, :allow].include?(method_name)
-
-            @source_rewriter.replace(send_node.loc.selector, "#{method_name}_any_instance_of")
-            @source_rewriter.replace(send_node.children[2].loc.expression, class_name)
-          end
-
-          # If it's a begin block, we have to go a level deeper
-          first_statement = node.children[2].begin_type? ? node.children[2].children.first : node.children[2]
-          last_statement = node.children[2].begin_type? ? node.children[2].children.last : node.children[2]
-          @source_rewriter.remove(range(node.loc.expression.begin_pos, first_statement.loc.expression.begin_pos)) # start of block
-          @source_rewriter.remove(range(last_statement.loc.expression.end_pos, node.loc.expression.end_pos)) # end of block
         end
 
         @source_rewriter.process
