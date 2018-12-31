@@ -36,33 +36,37 @@ module Rails5
           if verb == :with_any_args
             @source_rewriter.replace(node.loc.selector, 'with(any_args)')
           elsif verb == :any_times
-            @source_rewriter.replace(node.loc.selector, 'at_least(:once)')
+            @source_rewriter.replace(node.loc.selector, 'at_least(:once)') if node.parent.children[1] != :times
           elsif verb == :returns
             @source_rewriter.replace(node.loc.selector, 'and_return')
-          elsif verb == :times && action&.int_type?
-            times = action.children[0]
-            if times == 1
-              @source_rewriter.replace(Parser::Source::Range.new(@source_buffer, target.loc.expression.end_pos, node.loc.expression.end_pos), '.once')
-            elsif times == 2
-              @source_rewriter.replace(Parser::Source::Range.new(@source_buffer, target.loc.expression.end_pos, node.loc.expression.end_pos), '.twice')
+          elsif verb == :times
+            if action&.int_type?
+              times = action.children[0]
+              if times == 1
+                @source_rewriter.replace(range(target.loc.expression.end_pos, node.loc.expression.end_pos), '.once')
+              elsif times == 2
+                @source_rewriter.replace(range(target.loc.expression.end_pos, node.loc.expression.end_pos), '.twice')
+              end
+            elsif action&.send_type? && action&.children[1] == :any_times
+              @source_rewriter.replace(range(target.loc.expression.end_pos, node.loc.expression.end_pos), '.at_least(:once)')
             end
           elsif verb == :at_least && action.int_type?
             times = action.children[0]
             if times == 1
-              @source_rewriter.replace(Parser::Source::Range.new(@source_buffer, target.loc.expression.end_pos, node.loc.expression.end_pos), '.at_least(:once)')
+              @source_rewriter.replace(range(target.loc.expression.end_pos, node.loc.expression.end_pos), '.at_least(:once)')
             elsif times == 2
-              @source_rewriter.replace(Parser::Source::Range.new(@source_buffer, target.loc.expression.end_pos, node.loc.expression.end_pos), '.at_least(:twice)')
+              @source_rewriter.replace(range(target.loc.expression.end_pos, node.loc.expression.end_pos), '.at_least(:twice)')
             else
-              @source_rewriter.replace(Parser::Source::Range.new(@source_buffer, target.loc.expression.end_pos, node.loc.expression.end_pos), ".at_least(#{times}).times")
+              @source_rewriter.replace(range(target.loc.expression.end_pos, node.loc.expression.end_pos), ".at_least(#{times}).times")
             end
           elsif verb == :at_most && action.int_type?
             times = action.children[0]
             if times == 1
-              @source_rewriter.replace(Parser::Source::Range.new(@source_buffer, target.loc.expression.end_pos, node.loc.expression.end_pos), '.at_most(:once)')
+              @source_rewriter.replace(range(target.loc.expression.end_pos, node.loc.expression.end_pos), '.at_most(:once)')
             elsif times == 2
-              @source_rewriter.replace(Parser::Source::Range.new(@source_buffer, target.loc.expression.end_pos, node.loc.expression.end_pos), '.at_most(:twice)')
+              @source_rewriter.replace(range(target.loc.expression.end_pos, node.loc.expression.end_pos), '.at_most(:twice)')
             else
-              @source_rewriter.replace(Parser::Source::Range.new(@source_buffer, target.loc.expression.end_pos, node.loc.expression.end_pos), ".at_most(#{times}).times")
+              @source_rewriter.replace(range(target.loc.expression.end_pos, node.loc.expression.end_pos), ".at_most(#{times}).times")
             end
           elsif verb == :is_a
             @source_rewriter.replace(node.loc.selector, 'kind_of')
@@ -71,12 +75,12 @@ module Rails5
 
           # RR::WildcardMatchers::HashIncluding => hash_including
           elsif verb == :new && target.const_type? && target.children.last == :HashIncluding
-            range = Parser::Source::Range.new(@source_buffer, target.loc.expression.begin_pos, node.loc.selector.end_pos)
+            range = range(target.loc.expression.begin_pos, node.loc.selector.end_pos)
             @source_rewriter.replace(range, 'hash_including')
 
           # RR::WildcardMatchers::Satisfy => rr_satsify
           elsif verb == :new && target.const_type? && target.children.last == :Satisfy
-            range = Parser::Source::Range.new(@source_buffer, target.loc.expression.begin_pos, node.loc.selector.end_pos)
+            range = range(target.loc.expression.begin_pos, node.loc.selector.end_pos)
             @source_rewriter.replace(range, 'rr_satisfy')
 
           # rr_satisfy => satisfy
@@ -106,18 +110,12 @@ module Rails5
             else # parent is a block type
               begin_node = node.parent.children.last
               begin_node.each_node(:send) do |send_node|
-                expectation = 'to'
                 stub_method = send_node.children[1]
                 receive_method = send_node.parent.children[1]
                 has_args = !send_node.parent.children[2].nil?
                 next unless [:stub, :mock].include?(stub_method)
 
-                never_node = send_node.each_ancestor(:send).find { |n| n.children[1] == :never }
-                if never_node
-                  expectation = 'not_to'
-                  @source_rewriter.remove(range(never_node.children.first.loc.expression.end_pos, never_node.loc.selector.end_pos))
-                end
-
+                expectation = remove_never_node(send_node) ? 'not_to' : 'to'
                 expect_method = stub_method == :stub ? 'allow' : 'expect'
                 @source_rewriter.replace(range(send_node.parent.loc.expression.begin_pos, send_node.parent.loc.selector.end_pos), "#{expect_method}_any_instance_of(#{class_name}).#{expectation} receive(:#{receive_method})#{has_args ? '.with' : ''}")
               end
@@ -135,14 +133,7 @@ module Rails5
             if action.nil?
               @source_rewriter.replace(node.loc.selector, 'double')
             else
-              expectation = 'to'
-
-              # If there is a call to 'never' then use expect().not_to receive
-              never_node = node.each_ancestor(:send).find { |n| n.children[1] == :never }
-              if never_node
-                expectation = 'not_to'
-                @source_rewriter.remove(range(never_node.children.first.loc.expression.end_pos, never_node.loc.selector.end_pos))
-              end
+              expectation = remove_never_node(node) ? 'not_to' : 'to'
 
               @source_rewriter.replace(node.loc.selector, 'expect')
               method_name = node.parent.loc.selector.source
@@ -190,6 +181,19 @@ module Rails5
 
       def range(start_pos, end_pos)
         Parser::Source::Range.new(@source_buffer, start_pos, end_pos)
+      end
+
+      # Find any never or times(0) methods chained in the expression and remove them.
+      # Return true if a node was found and removed, false otherwise.
+      def remove_never_node(node)
+        if never_node = node.each_ancestor(:send).find { |n| n.children[1] == :never }
+          @source_rewriter.remove(range(never_node.children.first.loc.expression.end_pos, never_node.loc.selector.end_pos))
+          return true
+        elsif times_zero_node = node.each_ancestor(:send).find { |n| n.children[1] == :times && n.children[2].int_type? && n.children[2].children[0] == 0 }
+          @source_rewriter.remove(range(times_zero_node.children[0].loc.expression.end_pos, times_zero_node.loc.expression.end_pos))
+          return true
+        end
+        false
       end
 
       def looks_like_route_definition?(hash_node)

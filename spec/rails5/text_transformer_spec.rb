@@ -571,6 +571,19 @@ describe Rails5::SpecConverter::TextTransformer do
       end
     end
 
+    context 'when argument is 0' do
+      it 'converts to expect().not_to receive()' do
+        result = transform(<<-RUBY.strip_heredoc)
+          any_instance_of(User) { |u| mock(u).find.with(anything).times(0) }
+          mock(controller).ga_first_click_attribution(anything).times(0)
+        RUBY
+
+        expect(result).to eq(<<-RUBY.strip_heredoc)
+          expect_any_instance_of(User).not_to receive(:find).with(anything)
+          expect(controller).not_to receive(:ga_first_click_attribution).with(anything)
+        RUBY
+      end
+    end
   end
 
   describe 'returns' do

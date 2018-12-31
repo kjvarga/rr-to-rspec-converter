@@ -147,9 +147,11 @@ This is a custom modification of the transpec tool to handle converting from [RR
     80 matches across 37 files
 
     =>
+      times(0) => expect().not_to receive()
       times(1) => once
       times(2) => twice
       times(n) => times(n)
+      times(any_times) => at_least(:once)
 
 ### #any_times  DONE
     11 matches across 8 files
