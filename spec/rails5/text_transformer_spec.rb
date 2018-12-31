@@ -558,6 +558,19 @@ describe Rails5::SpecConverter::TextTransformer do
         RUBY
       end
     end
+
+    context 'when argument is any_times' do
+      it 'converts to at_least(:once)' do
+        result = transform(<<-RUBY.strip_heredoc)
+          allow(controller).to receive(:ga_first_click_attribution).times(any_times)
+        RUBY
+
+        expect(result).to eq(<<-RUBY.strip_heredoc)
+          allow(controller).to receive(:ga_first_click_attribution).at_least(:once)
+        RUBY
+      end
+    end
+
   end
 
   describe 'returns' do
