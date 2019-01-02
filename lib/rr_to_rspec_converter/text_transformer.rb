@@ -1,8 +1,8 @@
 require 'parser/current'
 require 'astrolabe/builder'
-require 'rails5/spec_converter/test_type_identifier'
-require 'rails5/spec_converter/text_transformer_options'
-require 'rails5/spec_converter/hash_rewriter'
+require 'rr_to_rspec_converter/test_type_identifier'
+require 'rr_to_rspec_converter/text_transformer_options'
+require 'rr_to_rspec_converter/hash_rewriter'
 
 module Rails5
   module SpecConverter

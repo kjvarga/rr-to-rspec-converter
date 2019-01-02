@@ -1,6 +1,6 @@
-require 'rails5/spec_converter/text_transformer'
-require 'rails5/spec_converter/text_transformer_options'
-require 'rails5/spec_converter/version'
+require 'rr_to_rspec_converter/text_transformer'
+require 'rr_to_rspec_converter/text_transformer_options'
+require 'rr_to_rspec_converter/version'
 require 'optparse'
 
 module Rails5

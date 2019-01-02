@@ -1,4 +1,4 @@
-require 'rails5/spec_converter/node_textifier'
+require 'rr_to_rspec_converter/node_textifier'
 
 class HashRewriter
   OUTSIDE_PARAMS_KEYS = %i(format)

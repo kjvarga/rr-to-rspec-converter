@@ -1,7 +1,7 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'rails5/spec_converter/version'
+require 'rr_to_rspec_converter/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "rr-to-rspec-converter"
