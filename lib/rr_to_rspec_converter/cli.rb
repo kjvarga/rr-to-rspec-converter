@@ -1,7 +1,7 @@
 require 'optparse'
-require 'text_transformer'
-require 'text_transformer_options'
-require 'version'
+require 'rr_to_rspec_converter/text_transformer'
+require 'rr_to_rspec_converter/text_transformer_options'
+require 'rr_to_rspec_converter/version'
 
 module RrToRspecConverter
   class CLI
