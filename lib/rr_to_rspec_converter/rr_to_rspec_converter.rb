@@ -1,2 +1,2 @@
-require "version"
-require "text_transformer"
+require 'version'
+require 'text_transformer'

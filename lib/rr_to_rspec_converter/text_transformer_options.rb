@@ -1,12 +1,10 @@
 class TextTransformerOptions
-  attr_accessor :hash_spacing, :indent, :file_path
+  attr_accessor :file_path
   attr_writer :quiet
 
   def initialize
     @file_path = nil
     @quiet = false
-    @indent = '  '
-    @hash_spacing = nil
   end
 
   def quiet?

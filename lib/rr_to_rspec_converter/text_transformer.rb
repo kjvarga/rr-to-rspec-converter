@@ -1,18 +1,13 @@
 require 'parser/current'
 require 'astrolabe/builder'
-require 'rr_to_rspec_converter/test_type_identifier'
-require 'rr_to_rspec_converter/text_transformer_options'
-require 'rr_to_rspec_converter/hash_rewriter'
+require 'text_transformer_options'
 
 module Rails5
   module SpecConverter
-    HTTP_VERBS = %i(get post put patch delete)
-
     class TextTransformer
       def initialize(content, options = TextTransformerOptions.new)
         @options = options
         @content = content
-        @textifier = NodeTextifier.new(@content)
 
         @source_buffer = Parser::Source::Buffer.new('(string)')
         @source_buffer.source = @content
@@ -196,57 +191,8 @@ module Rails5
         false
       end
 
-      def looks_like_route_definition?(hash_node)
-        keys = hash_node.children.map { |pair| pair.children[0].children[0] }
-        route_definition_keys = [:to, :controller]
-        return true if route_definition_keys.all? { |k| keys.include?(k) }
-
-        hash_node.children.each do |pair|
-          key = pair.children[0].children[0]
-          if key == :to
-            if pair.children[1].str_type?
-              value = pair.children[1].children[0]
-              return true if value.match(/^\w+#\w+$/)
-            end
-          end
-        end
-
-        false
-      end
-
-      def has_kwsplat?(hash_node)
-        hash_node.children.any? { |node| node.kwsplat_type? }
-      end
-
-      def has_key?(hash_node, key)
-        hash_node.children.any? { |pair| pair.children[0].children[0] == key }
-      end
-
-      def wrap_extra_positional_args!(args)
-        if test_type == :controller
-          wrap_arg(args[1], 'session') if args[1]
-          wrap_arg(args[2], 'flash') if args[2]
-        end
-        if test_type == :request
-          wrap_arg(args[1], 'headers') if args[1]
-        end
-      end
-
-      def wrap_arg(node, key)
-        node_loc = node.loc.expression
-        node_source = node_loc.source
-        if node.hash_type? && !node_source.match(/^\s*\{.*\}$/m)
-          node_source = "{ #{node_source} }"
-        end
-        @source_rewriter.replace(node_loc, "#{key}: #{node_source}")
-      end
-
       def line_indent(node)
         node.loc.expression.source_line.match(/^(\s*)/)[1]
-      end
-
-      def test_type
-        @test_type ||= TestTypeIdentifier.new(@content, @options).test_type
       end
 
       def log(str)
