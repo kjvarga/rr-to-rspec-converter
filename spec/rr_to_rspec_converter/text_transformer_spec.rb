@@ -10,7 +10,7 @@ describe RrToRspecConverter::TextTransformer do
   end
 
   def quiet_transform(text)
-    options = TextTransformerOptions.new
+    options = RrToRspecConverter::TextTransformerOptions.new
     options.quiet = true
     transform(text, options)
   end
@@ -285,21 +285,19 @@ describe RrToRspecConverter::TextTransformer do
 
   describe 'RR.reset' do
     it 'removes the line' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         RR.reset
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
-
-      RUBY
+      expect(result).to eq("        \n")
     end
 
     it 'removes the statement' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         RR.reset; something = :foo;
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         something = :foo;
       RUBY
     end
@@ -307,21 +305,21 @@ describe RrToRspecConverter::TextTransformer do
 
   describe 'rr_satisfy' do
     it 'converts to satisfy' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(rr_satisfy(params: 1)).something
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(satisfy(params: 1)).something
       RUBY
     end
 
     it 'converts to satisfy' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(rr_satisfy( {params: 1} )).something
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(satisfy( {params: 1} )).something
       RUBY
     end
@@ -329,11 +327,11 @@ describe RrToRspecConverter::TextTransformer do
 
   describe 'RR::WildcardMatchers::Satisfy' do
     it 'converts to satisfy' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(RR::WildcardMatchers::Satisfy.new( {params: 1} )).something
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(rr_satisfy( {params: 1} )).something
       RUBY
     end
@@ -341,21 +339,21 @@ describe RrToRspecConverter::TextTransformer do
 
   describe 'RR::WildcardMatchers::HashIncluding' do
     it 'converts to hash_including' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(RR::WildcardMatchers::HashIncluding.new(params: 1)).something
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(hash_including(params: 1)).something
       RUBY
     end
 
     it 'converts to hash_including' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(RR::WildcardMatchers::HashIncluding.new( {params: 1} )).something
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(hash_including( {params: 1} )).something
       RUBY
     end
@@ -363,11 +361,11 @@ describe RrToRspecConverter::TextTransformer do
 
   describe 'numeric' do
     it 'converts to kind_of(Numeric)' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(numeric).something
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(kind_of(Numeric)).something
       RUBY
     end
@@ -375,11 +373,11 @@ describe RrToRspecConverter::TextTransformer do
 
   describe 'is_a' do
     it 'converts to kind_of' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(is_a(User)).something
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(UsersService).not_to receive(:update).with(kind_of(User)).something
       RUBY
     end
@@ -388,21 +386,21 @@ describe RrToRspecConverter::TextTransformer do
   describe 'at_most' do
     context 'when 1' do
       it 'converts to at_most(:once)' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(1)
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(:once)
         RUBY
       end
 
       it 'converts to at_most(:once)' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(1).something
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(:once).something
         RUBY
       end
@@ -410,21 +408,21 @@ describe RrToRspecConverter::TextTransformer do
 
     context 'when 2' do
       it 'converts to at_most(:twice)' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(2)
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(:twice)
         RUBY
       end
 
       it 'converts to at_most(:twice)' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(2).something
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(:twice).something
         RUBY
       end
@@ -432,21 +430,21 @@ describe RrToRspecConverter::TextTransformer do
 
     context 'when greater than 2' do
       it 'converts to at_most(n).times' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(3)
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(3).times
         RUBY
       end
 
       it 'converts to at_most(n).times' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(3).something
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_most(3).times.something
         RUBY
       end
@@ -456,21 +454,21 @@ describe RrToRspecConverter::TextTransformer do
   describe 'at_least' do
     context 'when 1' do
       it 'converts to at_least(:once)' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_least(1)
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_least(:once)
         RUBY
       end
 
       it 'converts to at_least(:once)' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_least(1).something
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_least(:once).something
         RUBY
       end
@@ -478,21 +476,21 @@ describe RrToRspecConverter::TextTransformer do
 
     context 'when 2' do
       it 'converts to at_least(:twice)' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_least(2)
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_least(:twice)
         RUBY
       end
 
       it 'converts to at_least(:twice)' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_least(2).something
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_least(:twice).something
         RUBY
       end
@@ -500,11 +498,11 @@ describe RrToRspecConverter::TextTransformer do
 
     context 'when greater than 2' do
       it 'converts to at_least(n).times' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_least(3)
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect(UsersService).not_to receive(:update).with.at_least(3).times
         RUBY
       end
@@ -514,11 +512,11 @@ describe RrToRspecConverter::TextTransformer do
   describe 'times' do
     context 'when no argument' do
       it 'leaves it unmodified' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           2.times
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           2.times
         RUBY
       end
@@ -526,11 +524,11 @@ describe RrToRspecConverter::TextTransformer do
 
     context 'when argument is 1' do
       it 'converts to once' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).times(1).something
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).once.something
         RUBY
       end
@@ -538,11 +536,11 @@ describe RrToRspecConverter::TextTransformer do
 
     context 'when argument is 1 with spaces' do
       it 'converts to once' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).times  1
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).once
         RUBY
       end
@@ -550,11 +548,11 @@ describe RrToRspecConverter::TextTransformer do
 
     context 'when argument is 2' do
       it 'converts to twice' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).times(2)
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).twice
         RUBY
       end
@@ -562,11 +560,11 @@ describe RrToRspecConverter::TextTransformer do
 
     context 'when argument is greater than 2' do
       it 'does not modify it' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).times(3)
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).times(3)
         RUBY
       end
@@ -574,11 +572,11 @@ describe RrToRspecConverter::TextTransformer do
 
     context 'when argument is any_times' do
       it 'converts to at_least(:once)' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).times(any_times)
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).at_least(:once)
         RUBY
       end
@@ -586,12 +584,12 @@ describe RrToRspecConverter::TextTransformer do
 
     context 'when argument is 0' do
       it 'converts to expect().not_to receive()' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           any_instance_of(User) { |u| mock(u).find.with(anything).times(0) }
           mock(controller).ga_first_click_attribution(anything).times(0)
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           expect_any_instance_of(User).not_to receive(:find).with(anything)
           expect(controller).not_to receive(:ga_first_click_attribution).with(anything)
         RUBY
@@ -602,33 +600,33 @@ describe RrToRspecConverter::TextTransformer do
   describe 'returns' do
     context 'when no parentheses' do
       it 'converts to and_return and doesn\'t modify parentheses' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).returns argument
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           allow(controller).to receive(:ga_first_click_attribution).and_return argument
         RUBY
       end
     end
 
     it 'converts to and_return' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         allow(User).to receive(:find_by_param).with(user.id.to_s).returns(nil)
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         allow(User).to receive(:find_by_param).with(user.id.to_s).and_return(nil)
       RUBY
     end
 
     context 'when an intermediate method' do
       it 'converts to and_return' do
-        result = transform(<<-RUBY.strip_heredoc)
+        result = transform(<<-RUBY)
           mock!.headers({}).returns(header: 'value').subject
         RUBY
 
-        expect(result).to eq(<<-RUBY.strip_heredoc)
+        expect(result).to eq(<<-RUBY)
           mock!.headers({}).and_return(header: 'value').subject
         RUBY
       end
@@ -637,42 +635,42 @@ describe RrToRspecConverter::TextTransformer do
 
   describe 'any_times' do
     it 'converts to at_least(:once) when trailing method' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(UsersService).not_to receive(:update).with.any_times
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(UsersService).not_to receive(:update).with.at_least(:once)
       RUBY
     end
 
     it 'converts to at_least(:once) with block' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(controller).to receive(:create_new_user).any_times { user }
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(controller).to receive(:create_new_user).at_least(:once) { user }
       RUBY
     end
 
     it 'converts to at_least(:once) when an intermediate method' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(PetitionGroup).to receive(:find).any_times.something(petition_group)
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(PetitionGroup).to receive(:find).at_least(:once).something(petition_group)
       RUBY
     end
 
     it 'converts to at_least(:once) when there is extra whitespace' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(PetitionGroup).to receive(:find).any_times.
             something(petition_group)
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(PetitionGroup).to receive(:find).at_least(:once).
             something(petition_group)
       RUBY
@@ -681,42 +679,42 @@ describe RrToRspecConverter::TextTransformer do
 
   describe 'with_any_args' do
     it 'converts to with(any_args) when trailing method' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(UsersService).not_to receive(:update).with.with_any_args
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(UsersService).not_to receive(:update).with.with(any_args)
       RUBY
     end
 
     it 'converts to with(any_args) with block' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(controller).to receive(:create_new_user).with_any_args { user }
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(controller).to receive(:create_new_user).with(any_args) { user }
       RUBY
     end
 
     it 'converts to with(any_args) when an intermediate method' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(PetitionGroup).to receive(:find).with_any_args.something(petition_group)
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(PetitionGroup).to receive(:find).with(any_args).something(petition_group)
       RUBY
     end
 
     it 'converts to with(any_args) when there is extra whitespace' do
-      result = transform(<<-RUBY.strip_heredoc)
+      result = transform(<<-RUBY)
         expect(PetitionGroup).to receive(:find).with_any_args.
             something(petition_group)
       RUBY
 
-      expect(result).to eq(<<-RUBY.strip_heredoc)
+      expect(result).to eq(<<-RUBY)
         expect(PetitionGroup).to receive(:find).with(any_args).
             something(petition_group)
       RUBY
