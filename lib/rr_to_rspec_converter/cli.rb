@@ -3,7 +3,7 @@ require 'text_transformer_options'
 require 'version'
 require 'optparse'
 
-module Rails5
+module RrToRspecConverter
   module SpecConverter
     class CLI
       def initialize
@@ -12,7 +12,7 @@ module Rails5
           opts.banner = "Usage: rr-to-rspec-converter [options] [files]"
 
           opts.on("--version", "Print version number") do |q|
-            puts Rails5::SpecConverter::VERSION
+            puts RrToRspecConverter::VERSION
             exit
           end
 
@@ -33,7 +33,7 @@ module Rails5
 
             original_content = File.read(file_path)
             @options.file_path = file_path
-            transformed_content = Rails5::SpecConverter::TextTransformer.new(original_content, @options).transform
+            transformed_content = RrToRspecConverter::TextTransformer.new(original_content, @options).transform
             File.write(file_path, transformed_content)
           rescue Errno::EISDIR
           end

@@ -2,7 +2,7 @@ require 'parser/current'
 require 'astrolabe/builder'
 require 'text_transformer_options'
 
-module Rails5
+module RrToRspecConverter
   module SpecConverter
     class TextTransformer
       def initialize(content, options = TextTransformerOptions.new)

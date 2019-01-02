@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe Rails5::SpecConverter::TextTransformer do
+describe RrToRspecConverter::TextTransformer do
   def transform(text, options = nil)
     if options
       described_class.new(text, options).transform

@@ -1,7 +1,7 @@
 require 'spec_helper'
 
-describe Rails5::SpecConverter do
+describe RrToRspecConverter do
   it 'has a version number' do
-    expect(Rails5::SpecConverter::VERSION).not_to be nil
+    expect(RrToRspecConverter::VERSION).not_to be nil
   end
 end

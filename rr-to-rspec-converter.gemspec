@@ -5,7 +5,7 @@ require 'rr_to_rspec_converter/version'
 
 Gem::Specification.new do |spec|
   spec.name          = "rr-to-rspec-converter"
-  spec.version       = Rails5::SpecConverter::VERSION
+  spec.version       = RrToRspecConverter::VERSION
   spec.authors       = ["Karl Varga"]
   spec.email         = ["kjvarga@gmail.com"]
 
