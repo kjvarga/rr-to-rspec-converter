@@ -204,6 +204,22 @@ describe Rails5::SpecConverter::TextTransformer do
   end
 
   describe 'any_instance_of' do
+    pending 'dont_allow' do
+      it 'rewrites as expect().not_to receive' do
+        result = transform(<<-RUBY)
+          any_instance_of(User) do |o|
+            dont_allow(o).valid?
+            stub(o).admin.and_return(true)
+          end
+        RUBY
+
+        expect(result).to eq(<<-RUBY)
+          expect_any_instance_of(User).to receive(:valid?).and_return(false)
+            allow_any_instance_of(User).to receive(:admin).and_return(true)
+        RUBY
+      end
+    end
+
     context 'with block argument' do
       it 'rewrites each inner expect and allow' do
         result = transform(<<-RUBY)

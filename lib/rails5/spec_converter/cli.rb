@@ -9,7 +9,7 @@ module Rails5
       def initialize
         @options = TextTransformerOptions.new
         OptionParser.new do |opts|
-          opts.banner = "Usage: rails5-spec-converter [options] [files]"
+          opts.banner = "Usage: rr-to-rspec-converter [options] [files]"
 
           opts.on("--version", "Print version number") do |q|
             puts Rails5::SpecConverter::VERSION

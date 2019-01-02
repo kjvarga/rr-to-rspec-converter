@@ -4,14 +4,14 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'rails5/spec_converter/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "rails5-spec-converter"
+  spec.name          = "rr-to-rspec-converter"
   spec.version       = Rails5::SpecConverter::VERSION
-  spec.authors       = ["Travis Grathwell"]
-  spec.email         = ["tjgrathwell@gmail.com"]
+  spec.authors       = ["Karl Varga"]
+  spec.email         = ["kjvarga@gmail.com"]
 
-  spec.summary       = %q{A tool to upgrade Rails 4-style specs to Rails 5-style}
-  spec.description   = %q{Rails 5 issues a deprecation warning if your controller/request tests don't wrap user-supplied params in a `params` keyword. This helps with that.}
-  spec.homepage      = "https://github.com/tjgrathwell/rails5-spec-converter"
+  spec.summary       = %q{A tool to convert RR mocks/stubs to RSpec syntax}
+  spec.description   = %q{Automatic conversion of RR mocks and stubs to modern RSpec syntax.}
+  spec.homepage      = "https://github.com/kjvarga/rr-to-rspec-converter"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
