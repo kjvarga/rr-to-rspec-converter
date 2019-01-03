@@ -34,7 +34,6 @@ module RrToRspecConverter
           @options.file_path = file_path
           transformed_content = RrToRspecConverter::TextTransformer.new(original_content, @options).transform
           File.write(file_path, transformed_content)
-        rescue Errno::EISDIR
         end
       end
     end
