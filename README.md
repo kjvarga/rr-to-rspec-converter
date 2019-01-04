@@ -87,27 +87,35 @@ The following lists each RR API method and the conversion that is applied.  Some
 
 #### #mock!
 
-* Nested `mock!`, e.g. `mock.something.mock!.method { result }` => `and_return(double(method: result))`
+**Unhandled**
 
+Nested usage:
 
-Simnple usage:
+    mock.something.mock!.method { result }
+
+    => and_return(double(method: result))
+
+Simple usage:
 
     mock!
     =>
+      double
       instance_double("ConsoleNotifier")
       class_double("ConsoleNotifier")
-      [object_double(User.new, :save => true)](https://relishapp.com/rspec/rspec-mocks/docs/verifying-doubles/using-an-object-double)
+      object_double(User.new, :save => true)
       object_double("MyApp::LOGGER", :info => nil).as_stubbed_const
 
       Then assert expectations with `have_received` or `receive`.
 
 #### #stub
 
+[Rspec doubles](https://relishapp.com/rspec/rspec-mocks/v/3-8/docs/basics/partial-test-doubles)
+
 By itself:
 
     x = stub
 
-    => [double](https://relishapp.com/rspec/rspec-mocks/v/3-8/docs/basics/partial-test-doubles)
+    => double
 
 With method:
 
@@ -133,7 +141,7 @@ Normal usage:
 
     => expect(object).not_to receive(:method).with(args)
 
-Inside `any_instance_of` block (**Unhandled*):*
+Inside `any_instance_of` block (**Unhandled**):
 
     any_instance_of(klass) do |o|
       dont_allow(object).method(args)
